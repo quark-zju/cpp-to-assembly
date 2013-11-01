@@ -1,7 +1,24 @@
 #/bin/sh
 
-export LD_PRELOAD=$(dirname $0)/libpreload.so
-export ALLOWED_FOR_CREATE=/tmp 
-export ALLOWED_FOR_READ=/usr/local/include:/usr/include:/usr/lib:/usr/msp430:/usr/arm-linux-gnueabi/include:/tmp
+export TMPDIR=/tmp/c2asm
+#export LD_PRELOAD=$(dirname $0)/libpreload.so
+export ALLOWED_FOR_CREATE=$TMPDIR
+export ALLOWED_FOR_READ=/usr/include:/usr/lib:/usr/local/include:$TMPDIR
 
-"$@"
+mkdir -p $TMPDIR
+if [ -e /usr/local/sbin/lrun ]; then
+/usr/local/sbin/lrun \
+  --max-cpu-time 1 --max-real-time 1 --basic-devices true --network false \
+  --max-memory 67108864 \
+  --pass-exitcode true \
+  --env LD_PRELOAD "$(dirname $0)/libpreload.so" \
+  --env TMPDIR "$TMPDIR" \
+  --env PATH "/usr/bin" \
+  --env ALLOWED_FOR_CREATE "$TMPDIR" \
+  --env ALLOWED_FOR_READ "/usr/include:/usr/lib:/usr/local/include:$TMPDIR" \
+  --env LD_PRELOAD "$(dirname $0)/libpreload.so" \
+  "$@"
+else
+  export LD_PRELOAD=$(dirname $0)/libpreload.so
+  "$@"
+fi

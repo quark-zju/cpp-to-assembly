@@ -215,7 +215,7 @@ $(function() {
   });
   $("#compile").click(function(e) {
     $(this).button('loading');
-    $.post("/compile", $("form").serialize(), function(response) {
+    $.post("/c2asm/compile", $("form").serialize(), function(response) {
       return render(response);
     });
     return false;

@@ -22,7 +22,7 @@ decodeCode=(asm,code)->
 				fid=if file[1] then file[1] else 0
 
 				fname=file[2]
-				files[parseInt(fid)]= /(^test|\/test)/.test(fname)
+				files[parseInt(fid)]= /(^c2a|\/c2a)/.test(fname)
 				readmode=files[parseInt(fid)]
 				currentline=0
 			else
@@ -64,29 +64,31 @@ exports.indexpost = (req, res)->
 	lang=if req.body.language=="c" then "c" else "cpp"
 	#Generate file name
 	fileid=Math.floor(Math.random()*1000000001);
-	compiler=if req.body.arm then "arm-linux-gnueabi-g++-4.6" else "gcc"
+	compiler=(if lang=='c' then 'gcc' else 'g++')
+	opt=(if lang=='c' then '-std=c99' else '-std=c++0x')
+	src="/tmp/c2asm/c2a#{fileid}.#{lang}"
+	obj="c2a#{fileid}.o"
 	
 	#Write input to file
-	fs.writeFile "/tmp/test#{fileid}.#{lang}", req.body.ccode, (err)->
+	fs.writeFile src, req.body.ccode, (err)->
 		if err
 			res.json({error:"Server Error"});
 		else
 			# Execute GCC
-			exec "c-preload/compiler-wrapper #{compiler} -std=c99 -c #{optimize} -Wa,-ald  -g /tmp/test#{fileid}.#{lang}", {timeout:10000,maxBuffer: 1024 * 1024*10}, (error, stdout, stderr)->
+			#console.log("c-preload/compiler-wrapper #{compiler} #{opt} -c #{optimize} -Wa,-ald  -g #{src}")
+			exec "c-preload/compiler-wrapper #{compiler} #{opt} -c #{optimize} -Wa,-ald  -g #{src}", {timeout:2000,maxBuffer: 1024 * 1024*4}, (error, stdout, stderr)->
 					if error?
 						#Send error message to the client
-						res.json({error:error.toString()});
-						fs.unlink("/tmp/test#{fileid}.#{lang}")
-						fs.unlink("test#{fileid}.o")
+						msg = error.toString().replace(new RegExp(src, 'g'), "_.#{lang}")
+						if msg.length > 1024
+							msg = msg.substr(0, 1024) + ' ...'
+						res.json({error:msg})
 					else
 						#Parse standart output
+						#console.log stdout
 						blocks=decodeCode(stdout,req.body.ccode)
 						#Send result as json to the clien 
 						res.json(blocks);
-						#Clean up
-						fs.unlink("/tmp/test#{fileid}.#{lang}")
-						fs.unlink("test#{fileid}.o")
-
-
-
-
+					#Clean up
+					fs.unlink(src)
+					fs.unlink(obj)

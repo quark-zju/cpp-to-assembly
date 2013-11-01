@@ -168,7 +168,7 @@ $ ()->
     #Disable submit button
     $(this).button('loading')
     #start ajax request
-    $.post "/compile", $("form").serialize(), ( response )->
+    $.post "/c2asm/compile", $("form").serialize(), ( response )->
       render(response)  
     false
   return
